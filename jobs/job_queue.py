@@ -4,6 +4,7 @@ import logging
 
 if __name__ == '__main__':
     # ToDo: read end points from args
+    # ToDo: change to load balancing for workers, not round robin
     print("Starting job queue...")
     context = zmq.Context()
     pull_socket = context.socket(zmq.PULL)
