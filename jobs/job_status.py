@@ -2,9 +2,19 @@ import sys
 import zmq
 import logging
 import time
+import json
 
 # ToDo: replace this hack with lookup in Redis
 job_status = {}
+
+def parse_job_msg(msg):
+    """Parses a job message received from message queue.
+
+    :param msg: The message from the queue
+    :type msg: string
+    :returns: Dict of message values
+    :rtype: dict"""
+    return json.loads(msg)
 
 if __name__ == '__main__':
     # ToDo: read end points from args
@@ -27,37 +37,26 @@ if __name__ == '__main__':
 
         if status_update in socks:
             message = status_update.recv()
-            # process task
-            print(str(message))
+            # Update job status
+            #print(str(message))
+            msg_data = parse_job_msg(message)
+            about = msg_data.get("about")
+            if about is None:
+                raise KeyError("Expected message to contain 'about' to identify resource.")
+            job_status[about] = msg_data
+            #print(msg_data['data'])
 
         if status_request_reply in socks:
             message = status_request_reply.recv()
-            print(message)
-            status_request_reply.send("Hello")
-
-#    while True:
-#
-#        # Process any waiting tasks
-#        while True:
-#            
-#
-#            try:
-#                status_update_msg = status_request_reply.recv(zmq.DONTWAIT)
-#                print(status_update_msg)
-#                status_request_reply.send("Hello")
-#            except zmq.Again:
-#                break
-#            # process task
-
-#            # ToDo: updates should probably have priority, but 
-#            # causes status to hang - check out
-#            try:
-#                msg = status_update.recv(zmq.DONTWAIT)
-#                print(str(msg))
-#            except zmq.Again:
-#                break
-#            # process task
-            
+            #print(message)
+            # Update caller about job status
+            msg_data = parse_job_msg(message)
+            about = msg_data.get("about")
+            if about is None:
+                raise KeyError("Expected message to contain 'about' to identify resource.")
+            job_status_data = job_status.get(about)
+            print("Replying with job status.")
+            status_request_reply.send(json.dumps(job_status_data))
 
         # No activity, so sleep for 1 msec
         time.sleep(0.001)
